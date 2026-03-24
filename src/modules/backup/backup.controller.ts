@@ -1,10 +1,13 @@
 import Router from 'koa-router';
+import { createLogger } from '../../common/logger';
 import type { BackupService } from './backup.service';
 import type {
   BackupRecordListResponse,
   BackupRecordDetailResponse,
   BackupTriggerResponse,
 } from './backup.type';
+
+const log = createLogger({ component: 'BackupController' });
 
 export class BackupController {
   private readonly router: Router;
@@ -39,7 +42,7 @@ export class BackupController {
       const body: BackupTriggerResponse = { message: 'Backup triggered successfully' };
       ctx.body = body;
     } catch (error) {
-      console.error('[BackupController] triggerBackup failed:', error);
+      log.error({ err: error }, '手动触发备份失败');
       ctx.status = 500;
       ctx.body = {
         error: error instanceof Error ? error.message : 'Backup failed',

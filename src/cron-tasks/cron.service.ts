@@ -1,4 +1,7 @@
 import cron from 'node-cron';
+import { createLogger } from '../common/logger';
+
+const log = createLogger({ component: 'CronService' });
 
 interface CronJobEntry {
   name: string;
@@ -31,13 +34,13 @@ export class CronService {
       cron.schedule(task.expression, () => {
         void this.runHandler('cron', task.name, task.handler);
       });
-      console.log(`[CRON] Registered: ${task.name} (${task.expression})`);
+      log.info({ taskName: task.name, expression: task.expression }, '已注册 cron 任务');
     }
     for (const task of this.intervalTasks) {
       setInterval(() => {
         void this.runHandler('interval', task.name, task.handler);
       }, task.intervalMs);
-      console.log(`[INTERVAL] Registered: ${task.name} (every ${task.intervalMs}ms)`);
+      log.info({ taskName: task.name, intervalMs: task.intervalMs }, '已注册 interval 任务');
     }
   }
 
@@ -46,13 +49,13 @@ export class CronService {
     name: string,
     handler: () => void | Promise<void>,
   ): Promise<void> {
-    const tag = kind === 'cron' ? 'CRON' : 'INTERVAL';
-    console.log(`[${tag}] Running task: ${name}`);
+    const scheduleKind = kind;
+    log.info({ scheduleKind, taskName: name }, '定时任务开始执行');
     try {
       await handler();
-      console.log(`[${tag}] Task completed: ${name}`);
+      log.info({ scheduleKind, taskName: name }, '定时任务执行成功');
     } catch (error) {
-      console.error(`[${tag}] Task failed: ${name}`, error);
+      log.error({ err: error, scheduleKind, taskName: name }, '定时任务执行失败');
     }
   }
 }

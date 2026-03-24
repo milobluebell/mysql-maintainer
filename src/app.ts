@@ -1,11 +1,14 @@
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
+import { createLogger } from './common/logger';
 import { BackupController } from './modules/backup/backup.controller';
 import type { BackupService } from './modules/backup/backup.service';
 
 interface AppDependencies {
   backupService: BackupService;
 }
+
+const log = createLogger({ component: 'App' });
 
 export class App {
   private readonly koa: Koa;
@@ -24,7 +27,7 @@ export class App {
         const message = err instanceof Error ? err.message : 'Internal Server Error';
         ctx.status = (err as Record<string, number>).status || 500;
         ctx.body = { error: message };
-        console.error('[HTTP]', err);
+        log.error({ err }, 'HTTP 请求处理未捕获异常');
       }
     });
     this.koa.use(bodyParser());
@@ -39,7 +42,7 @@ export class App {
 
   listen(port: number): void {
     this.koa.listen(port, () => {
-      console.log(`[HTTP] Server running on port ${port}`);
+      log.info({ port }, 'HTTP 服务已监听');
     });
   }
 }

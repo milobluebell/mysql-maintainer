@@ -1,7 +1,5 @@
-import dotenv from 'dotenv';
 import path from 'path';
-
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+import { logger } from '../common/logger';
 
 export class EnvConfig {
   readonly nodeEnv: string;
@@ -29,4 +27,15 @@ export class EnvConfig {
 }
 
 export const envConfig = new EnvConfig();
-console.log(envConfig);
+logger.info(
+  {
+    nodeEnv: envConfig.nodeEnv,
+    serverPort: envConfig.serverPort,
+    backupDir: envConfig.backupDir,
+    mysqlHost: envConfig.mysqlHost,
+    mysqlPort: envConfig.mysqlPort,
+    mysqlDatabases: envConfig.mysqlDatabases,
+    sqliteDbPath: envConfig.sqliteDbPath,
+  },
+  '环境配置已加载（不含密码等敏感字段）',
+);

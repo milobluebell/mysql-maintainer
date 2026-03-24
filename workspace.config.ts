@@ -12,5 +12,5 @@ export default {
   proposalsDir: '.cursor/rule-proposals',
   businessCodeFilePatterns: [/\.(?:ts|js)$/i],
   projectConfigFilePatterns: [/(^|\/)package\.json$/i, /(^|\/)tsconfig(?:\..+)?\.json$/i],
-  postCommitReviewMaxRuntimeMs: 15 * 60 * 1000,
+  postCommitReviewMaxRuntimeMs: 10 * 60 * 1000,
 };

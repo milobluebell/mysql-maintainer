@@ -12,6 +12,7 @@ export class MysqlDumpService {
         '-u',
         envConfig.mysqlUser,
         `--password=${envConfig.mysqlPassword}`,
+        '--ssl',
         '--single-transaction',
         '--routines',
         '--triggers',
@@ -19,9 +20,9 @@ export class MysqlDumpService {
         databaseName,
       ];
 
-      execFile('mysqldump', args, (error, _stdout, stderr) => {
+      execFile('mariadb-dump', args, (error, _stdout, stderr) => {
         if (error) {
-          reject(new Error(`mysqldump failed for ${databaseName}: ${stderr || error.message}`));
+          reject(new Error(`mariadb-dump failed for ${databaseName}: ${stderr || error.message}`));
           return;
         }
         resolve();

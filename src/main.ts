@@ -14,9 +14,13 @@ async function bootstrap(): Promise<void> {
   const backupService = new BackupService(mysqlDumpService);
 
   const cronService = new CronService();
-  cronService.registerTask('mysql-backup', '0 3 * * *', () =>
-    backupService.performScheduledBackup(),
-  );
+  if (envConfig.nodeEnv === 'production') {
+    cronService.registerCron('mysql-backup', '0 3 * * *', () =>
+      backupService.performScheduledBackup(),
+    );
+  } else {
+    cronService.registerTask('mysql-backup', 60_000, () => backupService.performScheduledBackup());
+  }
   cronService.startAll();
 
   const app = new App({ backupService });

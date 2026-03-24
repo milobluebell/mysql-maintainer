@@ -34,7 +34,7 @@ src/
 
 - **Service layer**: caught errors must be directly re-thrown; no logging in catch blocks
 - **Controller layer**: responsible for logging and returning HTTP error responses
-- **CronService**: wraps task execution with try/catch and logs errors
+- **CronService**: `registerCron` for node-cron expressions; `registerTask` for `setInterval` (ms); both wrap execution with try/catch and log errors
 
 # Controller Rules
 

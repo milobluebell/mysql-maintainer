@@ -1,0 +1,43 @@
+---
+description: mysql-maintainer 项目核心约定，涵盖架构、命名、错误处理等
+alwaysApply: true
+---
+
+# Project Architecture
+
+Koa-based HTTP service with NestJS-style module organization.
+
+```
+src/
+  config/          # env, data-source
+  common/          # shared utilities (must have JSDoc comments in Chinese)
+  modules/<name>/  # feature modules: entity, service, controller, type, dto
+  cron-tasks/      # scheduled task services
+  app.ts           # Koa instance + middleware
+  main.ts          # bootstrap entry
+```
+
+# Naming Conventions
+
+- **Files**: dash-case (`backup-service.ts`, `cron.service.ts`)
+- **Functions / Methods**: lowerCamelCase
+- **Classes**: PascalCase
+- **OOP first**: prefer classes over functional patterns
+
+# Comments Policy
+
+- Class methods: **NO comments** — name must be self-explanatory
+- Module-level functions: **NO comments** unless in `src/common/`
+- `src/common/` shared utils: **MUST** have JSDoc in Chinese with `@param` descriptions
+
+# Error Handling
+
+- **Service layer**: caught errors must be directly re-thrown; no logging in catch blocks
+- **Controller layer**: responsible for logging and returning HTTP error responses
+- **CronService**: wraps task execution with try/catch and logs errors
+
+# Controller Rules
+
+- Body params → validated via DTO in a parallel `.dto.ts` file
+- Return types → defined in a parallel `.type.ts` file
+- Methods must declare explicit `Promise<T>` return types

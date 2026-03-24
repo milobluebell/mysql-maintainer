@@ -1,0 +1,14 @@
+---
+description: Docker 部署相关约定
+globs: "{Dockerfile,docker-compose*.yml}"
+alwaysApply: false
+---
+
+# Docker
+
+- Base image: `node:20-alpine`, multi-stage build
+- `mariadb-client` provides `mysqldump` in container
+- Backup output: `/var/db_backups` (bind-mount to host `./db_backups`)
+- SQLite persistence: named volume `sqlite-data` mounted at `/app/data`
+- `SQLITE_DB_PATH` env override in compose: `/app/data/mysql-maintainer.db`
+- MySQL healthcheck required before app starts (`depends_on: condition: service_healthy`)

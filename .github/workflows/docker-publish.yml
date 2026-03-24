@@ -1,0 +1,50 @@
+# 构建并推送 Docker 镜像到腾讯云容器镜像服务（TCR / 个人版 CCR）
+#
+# 请在仓库 Settings → Secrets and variables → Actions 中配置：
+#   TENCENT_REGISTRY  登录用的 Registry 域名，例如 ccr.ccs.tencentyun.com 或企业版 TCR 分配的域名
+#   TENCENT_USERNAME    用户名（控制台「访问凭证」或长期/临时用户名）
+#   TENCENT_PASSWORD    密码或访问令牌
+#   TENCENT_IMAGE       不含 tag 的完整镜像名，例如 ccr.ccs.tencentyun.com/<命名空间>/mysql-maintainer
+#
+# 触发：仅 push 到 main；镜像 tag 固定为 latest
+
+name: Docker build and push
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Tencent Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.TENCENT_REGISTRY }}
+          username: ${{ secrets.TENCENT_USERNAME }}
+          password: ${{ secrets.TENCENT_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.TENCENT_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64

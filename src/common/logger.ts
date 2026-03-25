@@ -44,19 +44,27 @@ const useColor =
 const prettyStream = pretty({
   colorize: useColor,
   singleLine: false,
-  hideObject: true,
+  hideObject: false,
   ignore: 'pid,hostname,name,v,time,component,scheduleKind,taskName',
   messageFormat: (log, messageKey) =>
     buildPrettyMessage(log as Record<string, unknown>, messageKey),
 });
 
 /**
- * 应用根日志实例（Pino），经 pino-pretty 输出为单行可读字符串。
+ * 应用根日志实例（Pino），经 pino-pretty 输出；`err` 等字段会随对象一并输出（含 stack）。
  * 级别优先读取 `LOG_LEVEL`，否则生产环境为 `info`，其余为 `debug`。
  * 本模块在创建实例前会先加载 `.env`。
  * 非 TTY 时默认不着色；可设置 `FORCE_COLOR=1` 或 `LOG_COLOR=1`（如 Docker 需要 ANSI 色）。
  */
-export const logger = pino({ level }, prettyStream);
+export const logger = pino(
+  {
+    level,
+    serializers: {
+      err: pino.stdSerializers.err,
+    },
+  },
+  prettyStream,
+);
 
 /**
  * 创建带固定上下文字段的子 logger，便于区分模块。

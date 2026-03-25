@@ -20,7 +20,7 @@ export class MysqlDumpService {
         databaseName,
       ];
 
-      execFile('mariadb-dump', args, (error, _stdout, stderr) => {
+      execFile('mariadb-dump', args, { maxBuffer: 200 * 1024 * 1024 }, (error, _stdout, stderr) => {
         if (error) {
           reject(new Error(`mariadb-dump failed for ${databaseName}: ${stderr || error.message}`));
           return;

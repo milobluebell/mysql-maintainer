@@ -9,14 +9,6 @@ alwaysApply: false
 - Target: ES2022, Module: Node16, strict mode enabled
 - Use `import type` for type-only imports
 - Prefer `readonly` on class fields that aren't reassigned
-- Use definite assignment assertion (`!`) for TypeORM entity columns
-
-# Database
-
-- ORM: TypeORM with Repository pattern (prefer over EntityManager)
-- SQLite via `better-sqlite3` for local metadata
-- No cross-database queries or slow queries without explicit approval
-
 # Async
 
 - Always `async/await`, never raw Promise chains
@@ -24,6 +16,5 @@ alwaysApply: false
 
 # Dependencies
 
-- Runtime: koa, koa-router, koa-bodyparser, node-cron, typeorm, better-sqlite3, dotenv
+- Runtime: koa, koa-router, koa-bodyparser, node-cron, pino, dotenv
 - Env vars loaded via `src/config/env.ts` singleton `envConfig`
-- DataSource initialized in `src/main.ts` before any service instantiation

@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { createLogger } from '../common/logger';
+import { runImmediatelyThenOnInterval } from '../common/run-immediately-then-interval';
 
 const log = createLogger({ component: 'CronService' });
 
@@ -20,6 +21,7 @@ type ScheduleKind = 'cron' | 'interval';
 export class CronService {
   private readonly cronJobs: CronJobEntry[] = [];
   private readonly intervalTasks: IntervalTaskEntry[] = [];
+  private readonly intervalTaskRunning = new Set<string>();
 
   registerCron(name: string, expression: string, handler: () => void | Promise<void>): void {
     this.cronJobs.push({ name, expression, handler });
@@ -37,10 +39,26 @@ export class CronService {
       log.info({ taskName: task.name, expression: task.expression }, '已注册 cron 任务');
     }
     for (const task of this.intervalTasks) {
-      setInterval(() => {
-        void this.runHandler('interval', task.name, task.handler);
-      }, task.intervalMs);
+      runImmediatelyThenOnInterval(task.intervalMs, () => {
+        void this.runIntervalTaskIfIdle(task);
+      });
       log.info({ taskName: task.name, intervalMs: task.intervalMs }, '已注册 interval 任务');
+    }
+  }
+
+  private async runIntervalTaskIfIdle(task: IntervalTaskEntry): Promise<void> {
+    if (this.intervalTaskRunning.has(task.name)) {
+      log.warn(
+        { taskName: task.name },
+        '上次备份尚未结束，跳过本次 interval 触发（避免并发 mysqldump）',
+      );
+      return;
+    }
+    this.intervalTaskRunning.add(task.name);
+    try {
+      await this.runHandler('interval', task.name, task.handler);
+    } finally {
+      this.intervalTaskRunning.delete(task.name);
     }
   }
 

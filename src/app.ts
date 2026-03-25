@@ -1,5 +1,6 @@
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
+import { serializeErrorForHttpResponse } from './common/error-serialization';
 import { createLogger } from './common/logger';
 import { BackupController } from './modules/backup/backup.controller';
 import type { BackupService } from './modules/backup/backup.service';
@@ -24,9 +25,8 @@ export class App {
       try {
         await next();
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Internal Server Error';
         ctx.status = (err as Record<string, number>).status || 500;
-        ctx.body = { error: message };
+        ctx.body = { error: serializeErrorForHttpResponse(err) };
         log.error({ err }, 'HTTP 请求处理未捕获异常');
       }
     });

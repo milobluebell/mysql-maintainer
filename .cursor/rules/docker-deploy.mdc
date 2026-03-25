@@ -10,6 +10,4 @@ alwaysApply: false
 - Base: **official `node:22-bookworm`** (builder) + **`node:22-bookworm-slim`** (runtime); Node 22 来自官方镜像，无需 NodeSource
 - **`default-mysql-client`**（`apt`）提供 **`mysqldump`**，与 Debian 系发行版一致、易维护
 - Backup output: `BACKUP_DIR` 默认 `./db_backups`（容器内 `/app/db_backups`）；compose 将宿主 `./db_backups` 挂载到 `/app/db_backups`
-- SQLite persistence: named volume `sqlite-data` mounted at `/app/data`
-- `SQLITE_DB_PATH` env override in compose: `/app/data/mysql-maintainer.db`
 - MySQL 连接信息由 `.env` / `env_file` 提供（远程或其它自建实例）

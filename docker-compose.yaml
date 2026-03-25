@@ -1,0 +1,13 @@
+services:
+  mysql-maintainer:
+    build: .
+    container_name: mysql-maintainer-dev
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+    ports:
+      - "${SERVER_PORT:-3010}:3010"
+    volumes:
+      - ./db_backups:/app/db_backups
+    restart: unless-stopped

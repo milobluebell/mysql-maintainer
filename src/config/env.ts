@@ -1,5 +1,7 @@
+import dotenv from 'dotenv';
 import path from 'path';
-import { logger } from '../common/logger';
+
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 export class EnvConfig {
   readonly nodeEnv: string;
@@ -10,7 +12,8 @@ export class EnvConfig {
   readonly mysqlDatabases: string[];
   readonly serverPort: number;
   readonly backupDir: string;
-  readonly sqliteDbPath: string;
+  readonly cosSecretId: string;
+  readonly cosSecretKey: string;
 
   constructor() {
     this.nodeEnv = process.env.NODE_ENV || 'development';
@@ -21,21 +24,24 @@ export class EnvConfig {
     this.mysqlDatabases = (process.env.MYSQL_DATABASES || '').split(',').filter(Boolean);
     this.serverPort = parseInt(process.env.SERVER_PORT || '3000', 10);
     this.backupDir = process.env.BACKUP_DIR || './db_backups';
-    this.sqliteDbPath =
-      process.env.SQLITE_DB_PATH || path.resolve(process.cwd(), 'mysql-maintainer.db');
+    this.cosSecretId = process.env.COS_SECRET_ID || '';
+    this.cosSecretKey = process.env.COS_SECRET_KEY || '';
   }
 }
 
+function valuesToStringRecord(obj: object): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (Array.isArray(value)) {
+      out[key] = value.map(String).join(',');
+    } else if (value !== null && typeof value === 'object') {
+      out[key] = JSON.stringify(value);
+    } else {
+      out[key] = String(value);
+    }
+  }
+  return out;
+}
+
 export const envConfig = new EnvConfig();
-logger.info(
-  {
-    nodeEnv: envConfig.nodeEnv,
-    serverPort: envConfig.serverPort,
-    backupDir: envConfig.backupDir,
-    mysqlHost: envConfig.mysqlHost,
-    mysqlPort: envConfig.mysqlPort,
-    mysqlDatabases: envConfig.mysqlDatabases,
-    sqliteDbPath: envConfig.sqliteDbPath,
-  },
-  '环境配置已加载（不含密码等敏感字段）',
-);
+console.table(valuesToStringRecord(envConfig));

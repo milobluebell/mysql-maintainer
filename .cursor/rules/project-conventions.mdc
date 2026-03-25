@@ -9,9 +9,9 @@ Koa-based HTTP service with NestJS-style module organization.
 
 ```
 src/
-  config/          # env, data-source
+  config/          # env
   common/          # shared utilities (must have JSDoc comments in Chinese)
-  modules/<name>/  # feature modules: entity, service, controller, type, dto
+  modules/<name>/  # feature modules: service, controller, type, dto (optional)
   cron-tasks/      # scheduled task services
   app.ts           # Koa instance + middleware
   main.ts          # bootstrap entry

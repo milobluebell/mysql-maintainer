@@ -1,18 +1,19 @@
-import 'reflect-metadata';
-import { AppDataSource } from './config/data-source';
-import { envConfig } from './config/env';
 import { logger } from './common/logger';
+import { envConfig } from './config/env';
 import { App } from './app';
 import { CronService } from './cron-tasks/cron.service';
 import { MysqlDumpService } from './cron-tasks/mysql-dump.service';
+import { CosUploadService } from './common/cos-upload.service';
 import { BackupService } from './modules/backup/backup.service';
 
 async function bootstrap(): Promise<void> {
-  await AppDataSource.initialize();
-  logger.info('SQLite 数据源已连接');
-
   const mysqlDumpService = new MysqlDumpService();
-  const backupService = new BackupService(mysqlDumpService);
+  const cosUploadService = new CosUploadService(
+    envConfig.cosSecretId,
+    envConfig.cosSecretKey,
+    envConfig.nodeEnv === 'production',
+  );
+  const backupService = new BackupService(mysqlDumpService, cosUploadService);
 
   const cronService = new CronService();
   if (envConfig.nodeEnv === 'production') {
@@ -20,11 +21,9 @@ async function bootstrap(): Promise<void> {
       backupService.performScheduledBackup(),
     );
   } else {
-    logger.warn(
-      { nodeEnv: envConfig.nodeEnv },
-      '非生产环境：使用 interval 定时备份，生产环境将改用 cron 表达式',
+    cronService.registerTask('mysql-backup', 3_600_000, () =>
+      backupService.performScheduledBackup(),
     );
-    cronService.registerTask('mysql-backup', 60_000, () => backupService.performScheduledBackup());
   }
   cronService.startAll();
 

@@ -1,18 +1,22 @@
-import type { Repository } from 'typeorm';
-import { existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
-import { BackupRecord } from './backup.entity';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import { execFile } from 'child_process';
+import { resolve } from 'path';
+import { createLogger } from '../../common/logger';
 import type { MysqlDumpService } from '../../cron-tasks/mysql-dump.service';
-import { AppDataSource } from '../../config/data-source';
+import type { CosUploadService } from '../../common/cos-upload.service';
 import { envConfig } from '../../config/env';
-import { generateBackupFilename } from '../../common/generate-backup-filename';
+import {
+  generateBackupFilename,
+  generateArchiveFilename,
+} from '../../common/generate-backup-filename';
+
+const log = createLogger({ component: 'BackupService' });
 
 export class BackupService {
-  private readonly backupRecordRepository: Repository<BackupRecord>;
-
-  constructor(private readonly mysqlDumpService: MysqlDumpService) {
-    this.backupRecordRepository = AppDataSource.getRepository(BackupRecord);
-  }
+  constructor(
+    private readonly mysqlDumpService: MysqlDumpService,
+    private readonly cosUploadService: CosUploadService,
+  ) {}
 
   async performScheduledBackup(): Promise<void> {
     const { mysqlDatabases, backupDir } = envConfig;
@@ -21,25 +25,43 @@ export class BackupService {
       mkdirSync(backupDir, { recursive: true });
     }
 
-    for (const databaseName of mysqlDatabases) {
-      const filename = generateBackupFilename(databaseName);
-      const location = join(backupDir, filename);
+    const dumpFiles = await Promise.all(
+      mysqlDatabases.map(async (databaseName) => {
+        const filename = generateBackupFilename(databaseName);
+        const location = resolve(backupDir, filename);
 
-      const record = this.backupRecordRepository.create({ databaseName, location });
-      const savedRecord = await this.backupRecordRepository.save(record);
+        log.info({ databaseName, location }, '开始 mysqldump');
+        await this.mysqlDumpService.dumpDatabase(databaseName, location);
+        log.info({ databaseName }, 'mysqldump 完成');
 
-      await this.mysqlDumpService.dumpDatabase(databaseName, location);
+        return { filename, location };
+      }),
+    );
 
-      savedRecord.updatedAt = new Date();
-      await this.backupRecordRepository.save(savedRecord);
+    const archiveName = generateArchiveFilename();
+    const archivePath = resolve(backupDir, archiveName);
+    const sqlFilenames = dumpFiles.map((f) => f.filename);
+
+    log.info({ archiveName, files: sqlFilenames }, '开始打包压缩');
+    await this.createArchive(backupDir, sqlFilenames, archivePath);
+
+    for (const { location } of dumpFiles) {
+      unlinkSync(location);
     }
+    log.info({ archiveName }, '打包完成，临时 SQL 文件已清理');
+
+    await this.cosUploadService.uploadFile(archivePath);
   }
 
-  async findAllRecords(): Promise<BackupRecord[]> {
-    return this.backupRecordRepository.find({ order: { createdAt: 'DESC' } });
-  }
-
-  async findRecordById(id: number): Promise<BackupRecord | null> {
-    return this.backupRecordRepository.findOneBy({ id });
+  private createArchive(cwd: string, files: string[], outputPath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      execFile('tar', ['-czf', outputPath, ...files], { cwd }, (error, _stdout, stderr) => {
+        if (error) {
+          reject(new Error(`tar 打包失败: ${stderr || error.message}`));
+          return;
+        }
+        resolve();
+      });
+    });
   }
 }
